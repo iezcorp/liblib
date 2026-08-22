@@ -1,5 +1,7 @@
+```lua
 -- skybox.lua
--- Usage: loadstring(game:HttpGet("raw_url_to_this_file"))()(imageUrl)
+-- Usage:
+-- loadstring(game:HttpGet("raw_url_to_this_file"))()(imageUrl)
 
 return function(imageUrl)
     -- Validate input
@@ -11,21 +13,33 @@ return function(imageUrl)
     print("[Skybox] Applying skybox...")
 
     local Lighting = game:GetService("Lighting")
-    local sky = Lighting:FindFirstChild("Sky") or Instance.new("Sky", Lighting)
 
-    -- Roblox Sky uses 6 faces; set all to the same image
+    -- Find existing Sky or create one
+    local sky = Lighting:FindFirstChildOfClass("Sky")
+
+    if not sky then
+        sky = Instance.new("Sky")
+        sky.Name = "Sky"
+        sky.Parent = Lighting
+    end
+
+    -- Roblox Sky uses 6 faces
     local faces = {
-        "SkyboxBk", "SkyboxDn", "SkyboxFt",
-        "SkyboxLf", "SkyboxRt", "SkyboxUp"
+        "SkyboxBk",
+        "SkyboxDn",
+        "SkyboxFt",
+        "SkyboxLf",
+        "SkyboxRt",
+        "SkyboxUp"
     }
 
+    -- Apply image to all six faces
     for _, face in ipairs(faces) do
         sky[face] = imageUrl
     end
 
-    -- Enable the sky
-    sky.Enabled = true
-
     print("[Skybox] Skybox applied successfully!")
+
     return true
 end
+```
