@@ -1,19 +1,39 @@
 -- skybox.lua
+local InsertService = game:GetService("InsertService")
+local Lighting = game:GetService("Lighting")
+
+-- Helper function to convert Decal IDs to true Image IDs
+local function getImageId(assetId)
+    local numId = tonumber(tostring(assetId):match("%d+"))
+    if not numId then return nil end
+
+    -- Try resolving via InsertService
+    local success, result = pcall(function()
+        local decal = InsertService:LoadAsset(numId):FindFirstChildOfClass("Decal")
+        if decal and decal.Texture then
+            return decal.Texture
+        end
+    end)
+
+    if success and result and result ~= "" then
+        return result
+    end
+
+    -- Fallback to direct asset ID format if InsertService is blocked by executor/game
+    return "rbxassetid://" .. tostring(numId)
+end
+
 return function(assetInput)
     if not assetInput or assetInput == "" then
-        return false, "No asset ID or URL provided."
+        return false, "No asset ID provided."
     end
 
-    -- Extract numeric ID if given a URL or full string
-    local cleanId = tostring(assetInput):match("%d+")
-    if not cleanId then
-        return false, "Invalid asset ID or URL format."
+    local textureUrl = getImageId(assetInput)
+    if not textureUrl then
+        return false, "Invalid Asset ID format."
     end
 
-    local assetUrl = "rbxassetid://" .. cleanId
-    local Lighting = game:GetService("Lighting")
-
-    -- Find existing Sky or create a new one
+    -- Get or create Sky instance
     local sky = Lighting:FindFirstChildOfClass("Sky")
     if not sky then
         sky = Instance.new("Sky")
@@ -21,13 +41,13 @@ return function(assetInput)
         sky.Parent = Lighting
     end
 
-    -- Apply image to all six faces
-    sky.SkyboxBk = assetUrl
-    sky.SkyboxDn = assetUrl
-    sky.SkyboxFt = assetUrl
-    sky.SkyboxLf = assetUrl
-    sky.SkyboxRt = assetUrl
-    sky.SkyboxUp = assetUrl
+    -- Apply texture to all six faces
+    sky.SkyboxBk = textureUrl
+    sky.SkyboxDn = textureUrl
+    sky.SkyboxFt = textureUrl
+    sky.SkyboxLf = textureUrl
+    sky.SkyboxRt = textureUrl
+    sky.SkyboxUp = textureUrl
 
     return true
 end
