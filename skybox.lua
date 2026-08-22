@@ -1,45 +1,33 @@
-```lua
 -- skybox.lua
--- Usage:
--- loadstring(game:HttpGet("raw_url_to_this_file"))()(imageUrl)
-
-return function(imageUrl)
-    -- Validate input
-    if type(imageUrl) ~= "string" or imageUrl == "" then
-        warn("[Skybox] Invalid image URL provided.")
-        return false
+return function(assetInput)
+    if not assetInput or assetInput == "" then
+        return false, "No asset ID or URL provided."
     end
 
-    print("[Skybox] Applying skybox...")
+    -- Extract numeric ID if given a URL or full string
+    local cleanId = tostring(assetInput):match("%d+")
+    if not cleanId then
+        return false, "Invalid asset ID or URL format."
+    end
 
+    local assetUrl = "rbxassetid://" .. cleanId
     local Lighting = game:GetService("Lighting")
 
-    -- Find existing Sky or create one
+    -- Find existing Sky or create a new one
     local sky = Lighting:FindFirstChildOfClass("Sky")
-
     if not sky then
         sky = Instance.new("Sky")
-        sky.Name = "Sky"
+        sky.Name = "KittySkybox"
         sky.Parent = Lighting
     end
 
-    -- Roblox Sky uses 6 faces
-    local faces = {
-        "SkyboxBk",
-        "SkyboxDn",
-        "SkyboxFt",
-        "SkyboxLf",
-        "SkyboxRt",
-        "SkyboxUp"
-    }
-
     -- Apply image to all six faces
-    for _, face in ipairs(faces) do
-        sky[face] = imageUrl
-    end
-
-    print("[Skybox] Skybox applied successfully!")
+    sky.SkyboxBk = assetUrl
+    sky.SkyboxDn = assetUrl
+    sky.SkyboxFt = assetUrl
+    sky.SkyboxLf = assetUrl
+    sky.SkyboxRt = assetUrl
+    sky.SkyboxUp = assetUrl
 
     return true
 end
-```
