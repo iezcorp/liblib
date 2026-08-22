@@ -1,26 +1,15 @@
 -- ============================================================
 --  AIMBOT – Kitty (Rivals)
---  Core logic adapted from Open‑Aimbot (ttwizz)
---  Reads settings from _G.AimbotSettings
+--  Uses Open‑Aimbot’s static offset + smoothing logic
+--  Reads _G.AimbotSettings
 -- ============================================================
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
-
--- ============================================================
---  CONFIGURATION (mirror Open‑Aimbot's defaults)
--- ============================================================
-
--- Static offset for Head (brings aim down to center)
-local HEAD_OFFSET = Vector3.new(0, -0.3, 0)
-
--- Optional: enable/disable checks (we can add later if UI expands)
-local ENABLE_TEAM_CHECK = false   -- set to true if you want team check
 
 -- ============================================================
 --  HELPER: Is the target valid?
@@ -30,34 +19,15 @@ local function IsTargetValid(targetChar, targetPart)
     if not targetChar or not targetPart then return false end
     local humanoid = targetChar:FindFirstChildWhichIsA("Humanoid")
     if not humanoid or humanoid.Health <= 0 then return false end
-
-    -- Team check (optional)
-    if ENABLE_TEAM_CHECK then
-        local targetPlayer = Players:GetPlayerFromCharacter(targetChar)
-        if targetPlayer and player.Team and targetPlayer.Team == player.Team then
-            return false
-        end
-    end
-
-    -- Part must be a BasePart
+    -- Optional team check – uncomment if needed
+    -- local targetPlayer = Players:GetPlayerFromCharacter(targetChar)
+    -- if targetPlayer and player.Team and targetPlayer.Team == player.Team then return false end
     if not targetPart:IsA("BasePart") then return false end
-
-    -- (Optional wall check using raycast – uncomment if needed)
-    -- local origin = camera.CFrame.Position
-    -- local direction = (targetPart.Position - origin).Unit * (targetPart.Position - origin).Magnitude
-    -- local ray = RaycastParams.new()
-    -- ray.FilterType = Enum.RaycastFilterType.Exclude
-    -- ray.FilterDescendantsInstances = {player.Character}
-    -- local result = workspace:Raycast(origin, direction, ray)
-    -- if result and result.Instance and not result.Instance:IsDescendantOf(targetChar) then
-    --     return false
-    -- end
-
     return true
 end
 
 -- ============================================================
---  FIND THE NEAREST TARGET
+--  FIND NEAREST TARGET
 -- ============================================================
 
 local function GetNearestTarget()
@@ -96,10 +66,8 @@ local function GetNearestTarget()
 end
 
 -- ============================================================
---  MAIN AIMBOT LOOP
+--  MAIN LOOP
 -- ============================================================
-
-local tween = nil
 
 RunService.Heartbeat:Connect(function()
     local settings = _G.AimbotSettings
@@ -108,42 +76,32 @@ RunService.Heartbeat:Connect(function()
     local targetChar, targetPart = GetNearestTarget()
     if not targetPart then return end
 
-    -- Apply offset if aiming for Head
-    local targetPos = targetPart.Position
-    if settings.Part == "Head" then
-        targetPos = targetPos + HEAD_OFFSET
-    end
+    -- Apply static offset as in Open‑Aimbot:
+    -- Offset = Vector3.new(0, TargetPart.Position.Y * StaticOffsetIncrement / 10, 0)
+    local offset = Vector3.new(0, targetPart.Position.Y * settings.StaticOffsetIncrement / 10, 0)
+    local targetPos = targetPart.Position + offset
 
     -- Project to screen
     local screenPos, onScreen = camera:WorldToScreenPoint(targetPos)
     if not onScreen then return end
 
-    -- Smoothness factor: 0 = instant, 100 = almost no correction
+    -- Smoothness: 0 = instant, 100 = almost no correction
     local smoothFactor = (100 - settings.Smoothness) / 100
     if smoothFactor < 0.01 then smoothFactor = 0.01 end
 
     if settings.AimType == "Mouse" then
-        -- Move mouse relative
         local currentMouse = UserInputService:GetMouseLocation()
         local deltaX = (screenPos.X - currentMouse.X) * smoothFactor
         local deltaY = (screenPos.Y - currentMouse.Y) * smoothFactor
         mousemoverel(deltaX, deltaY)
     else
-        -- Camera smoothing using Tween (like Open‑Aimbot's Camera mode)
+        -- Camera mode
         local currentCF = camera.CFrame
         local targetCF = CFrame.new(currentCF.Position, targetPos)
-        local lerpFactor = 1 - (settings.Smoothness / 100)  -- 1 = full lock per frame
+        local lerpFactor = 1 - (settings.Smoothness / 100)
         if lerpFactor < 0.01 then lerpFactor = 0.01 end
-
-        -- If we have a tween, cancel it
-        if tween then
-            tween:Cancel()
-            tween = nil
-        end
-
-        -- Use Lerp for smooth camera movement (more responsive than Tween)
         camera.CFrame = currentCF:Lerp(targetCF, lerpFactor)
     end
 end)
 
-print("Aimbot loaded (Open‑Aimbot core). Use the UI toggle/keybind.")
+print("Aimbot loaded with Open‑Aimbot offset method.")
