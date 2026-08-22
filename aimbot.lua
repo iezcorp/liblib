@@ -10,25 +10,30 @@ _G.AimbotSettings = {
     Smoothness = 50,
     AimType = "Mouse",
     Part = "Head",
+    ToggleKey = Enum.KeyCode.F,  -- default fallback
 }
 
--- Toggle (will be controlled by keybind)
+-- Toggle (manual click)
 local aimbotToggle = AimGroup:AddToggle("AimbotToggle", {
     Text = "Enable Aimbot",
     Default = false,
 })
 
--- Attach the keypicker with HOLD mode
+-- Keypicker with HOLD mode
 local toggleKeybind = aimbotToggle:AddKeyPicker("AimbotKeybind", {
     Text = "Hold Key to Aim",
     Default = "F",
-    Mode = "Hold",        -- <-- key held = aimbot ON, key released = OFF
+    Mode = "Hold",          -- key down = ON, key up = OFF
 })
 
+-- Update global settings when toggle changes (click or key)
 aimbotToggle:OnChanged(function(value)
     _G.AimbotSettings.Enabled = value
-    -- Optional: print state for debugging
-    -- print("Aimbot enabled:", value)
+end)
+
+-- Also store the key for the aimbot's direct listener (fallback)
+toggleKeybind:OnChanged(function(key)
+    _G.AimbotSettings.ToggleKey = key
 end)
 
 -- Smoothness Slider
