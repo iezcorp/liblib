@@ -1,6 +1,7 @@
 -- ============================================================
 --  AIMBOT – Kitty (Rivals)
 --  Reads settings from _G.AimbotSettings
+--  No extra key listeners – respects the toggle state only.
 -- ============================================================
 
 local Players = game:GetService("Players")
@@ -10,10 +11,10 @@ local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
 
--- Offset to bring aim down to the center of the head (adjust if needed)
+-- Offset to bring lock to center of head (adjust Y as needed)
 local HEAD_OFFSET = Vector3.new(0, -0.3, 0)
 
--- Helper: find nearest enemy and the target part
+-- Helper: find nearest enemy and target part
 local function getNearestTarget()
     local character = player.Character
     if not character or not character.PrimaryPart then return nil, nil end
@@ -25,7 +26,7 @@ local function getNearestTarget()
 
     for _, other in ipairs(Players:GetPlayers()) do
         if other ~= player and other.Character and other.Character.PrimaryPart then
-            -- optional team check (uncomment if needed)
+            -- Uncomment for team check:
             -- if player.Team and other.Team == player.Team then continue end
             local otherRoot = other.Character.PrimaryPart
             local dist = (otherRoot.Position - pos).Magnitude
@@ -48,59 +49,32 @@ local function getNearestTarget()
     return bestPlayer, targetPart
 end
 
--- Direct key listener (fallback for hold mode)
-local keyDown = false
-local toggleKey = _G.AimbotSettings and _G.AimbotSettings.ToggleKey or Enum.KeyCode.F
-
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if input.KeyCode == toggleKey then
-        keyDown = true
-        -- If the manual toggle is off, we temporarily enable aimbot
-        -- but we don't override the toggle's value; we set a separate flag.
-        -- We'll combine: if manual toggle is on OR key is held, aimbot active.
-    end
-end)
-
-UserInputService.InputEnded:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if input.KeyCode == toggleKey then
-        keyDown = false
-    end
-end)
-
--- Main loop
+-- Main loop – runs every frame
 RunService.Heartbeat:Connect(function()
     local settings = _G.AimbotSettings
-    if not settings then return end
-
-    -- Aimbot active if manual toggle is ON OR key is held down
-    local active = settings.Enabled or keyDown
-    if not active then return end
+    if not settings or not settings.Enabled then return end
 
     local targetPlayer, targetPart = getNearestTarget()
     if not targetPart then return end
 
-    -- Apply offset to bring aim to center of head (if head is selected)
+    -- Apply offset if we're aiming at Head
     local targetPos = targetPart.Position
     if settings.Part == "Head" then
         targetPos = targetPos + HEAD_OFFSET
     end
 
-    -- Get screen position
+    -- Project target to screen
     local screenPos, onScreen = camera:WorldToScreenPoint(targetPos)
     if not onScreen then return end
 
-    -- Smoothness
+    -- Smoothness: 0 = instant lock, 100 = nearly no correction
     local smoothFactor = (100 - settings.Smoothness) / 100
     if smoothFactor < 0.01 then smoothFactor = 0.01 end
 
     if settings.AimType == "Mouse" then
         local currentMousePos = UserInputService:GetMouseLocation()
-        local deltaX = screenPos.X - currentMousePos.X
-        local deltaY = screenPos.Y - currentMousePos.Y
-        deltaX = deltaX * smoothFactor
-        deltaY = deltaY * smoothFactor
+        local deltaX = (screenPos.X - currentMousePos.X) * smoothFactor
+        local deltaY = (screenPos.Y - currentMousePos.Y) * smoothFactor
         mousemoverel(deltaX, deltaY)
     else  -- "Camera"
         local currentCF = camera.CFrame
@@ -111,4 +85,4 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
-print("Aimbot loaded. Hold the key to aim, or toggle manually.")
+print("Aimbot ready. Use the UI keybind (right‑click to change mode).")
