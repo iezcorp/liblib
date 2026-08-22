@@ -1,8 +1,5 @@
--- ============================================================
---  skybox.lua
---  Applies a custom skybox to Roblox Lighting using a single image URL.
---  Usage: loadstring(game:HttpGet("raw_url_to_this_file"))()(imageUrl)
--- ============================================================
+-- skybox.lua
+-- Usage: loadstring(game:HttpGet("raw_url_to_this_file"))()(imageUrl)
 
 return function(imageUrl)
     -- Validate input
@@ -11,26 +8,15 @@ return function(imageUrl)
         return false
     end
 
-    -- Get the Lighting service
-    local Lighting = game:GetService("Lightning")
+    print("[Skybox] Applying skybox...")
 
-    -- Find existing Sky or create a new one
-    local sky = Lighting:FindFirstChild("Sky")
-    if not sky then
-        sky = Instance.new("Sky", Lighting)
-        print("[Skybox] Created new Sky instance.")
-    else
-        print("[Skybox] Using existing Sky instance.")
-    end
+    local Lighting = game:GetService("Lighting")
+    local sky = Lighting:FindFirstChild("Sky") or Instance.new("Sky", Lighting)
 
-    -- Roblox Sky uses 6 faces – set all to the same image
+    -- Roblox Sky uses 6 faces; set all to the same image
     local faces = {
-        "SkyboxBk",  -- Back
-        "SkyboxDn",  -- Down
-        "SkyboxFt",  -- Front
-        "SkyboxLf",  -- Left
-        "SkyboxRt",  -- Right
-        "SkyboxUp"   -- Up
+        "SkyboxBk", "SkyboxDn", "SkyboxFt",
+        "SkyboxLf", "SkyboxRt", "SkyboxUp"
     }
 
     for _, face in ipairs(faces) do
