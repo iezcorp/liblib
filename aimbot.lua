@@ -1,83 +1,66 @@
 -- ============================================================
---  AIMBOT – Kitty (Rivals)
---  Reads settings from _G.AimbotSettings (set by UI)
+--  AIM TAB
 -- ============================================================
 
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
+local AimTab = Window:AddTab("Aim", "crosshair")
+local AimGroup = AimTab:AddLeftGroupbox("Aim Settings", "target")
 
-local player = Players.LocalPlayer
-local camera = workspace.CurrentCamera
+_G.AimbotSettings = {
+    Enabled = false,
+    Smoothness = 50,
+    AimType = "Mouse",
+    Part = "Head",
+}
 
--- Helper: find nearest enemy and the target part (Head or Torso)
-local function getNearestTarget()
-    local character = player.Character
-    if not character or not character.PrimaryPart then return nil, nil end
-    local root = character.PrimaryPart
-    local pos = root.Position
+-- Toggle (will be controlled by keybind)
+local aimbotToggle = AimGroup:AddToggle("AimbotToggle", {
+    Text = "Enable Aimbot",
+    Default = false,
+})
 
-    local bestPlayer = nil
-    local bestDist = math.huge
+-- Attach the keypicker with HOLD mode
+local toggleKeybind = aimbotToggle:AddKeyPicker("AimbotKeybind", {
+    Text = "Hold Key to Aim",
+    Default = "F",
+    Mode = "Hold",        -- <-- key held = aimbot ON, key released = OFF
+})
 
-    for _, other in ipairs(Players:GetPlayers()) do
-        if other ~= player and other.Character and other.Character.PrimaryPart then
-            -- Optional team check (uncomment if needed)
-            -- if player.Team and other.Team == player.Team then continue end
-            local otherRoot = other.Character.PrimaryPart
-            local dist = (otherRoot.Position - pos).Magnitude
-            if dist < bestDist then
-                bestDist = dist
-                bestPlayer = other
-            end
-        end
-    end
-
-    if not bestPlayer then return nil, nil end
-
-    local targetChar = bestPlayer.Character
-    local settings = _G.AimbotSettings
-    local partName = (settings and settings.Part) or "Head"
-    local targetPart = targetChar:FindFirstChild(partName)
-    if not targetPart then
-        -- fallback to Head or PrimaryPart
-        targetPart = targetChar:FindFirstChild("Head") or targetChar.PrimaryPart
-    end
-    return bestPlayer, targetPart
-end
-
--- Main loop
-RunService.Heartbeat:Connect(function()
-    local settings = _G.AimbotSettings
-    if not settings or not settings.Enabled then return end
-
-    local targetPlayer, targetPart = getNearestTarget()
-    if not targetPart then return end
-
-    -- Get screen position of the target part
-    local screenPos, onScreen = camera:WorldToScreenPoint(targetPart.Position)
-    if not onScreen then return end
-
-    -- Smoothness: 0 = instant lock, 100 = almost no correction
-    local smoothFactor = (100 - settings.Smoothness) / 100
-    if smoothFactor < 0.01 then smoothFactor = 0.01 end
-
-    if settings.AimType == "Mouse" then
-        local currentMousePos = UserInputService:GetMouseLocation()
-        local deltaX = screenPos.X - currentMousePos.X
-        local deltaY = screenPos.Y - currentMousePos.Y
-        deltaX = deltaX * smoothFactor
-        deltaY = deltaY * smoothFactor
-        mousemoverel(deltaX, deltaY)
-    else  -- "Camera"
-        local targetPos = targetPart.Position
-        local currentCF = camera.CFrame
-        local targetCF = CFrame.new(currentCF.Position, targetPos)
-        local lerpFactor = 1 - (settings.Smoothness / 100)  -- 1 = full lock per frame
-        if lerpFactor < 0.01 then lerpFactor = 0.01 end
-        local newCF = currentCF:Lerp(targetCF, lerpFactor)
-        camera.CFrame = newCF
-    end
+aimbotToggle:OnChanged(function(value)
+    _G.AimbotSettings.Enabled = value
+    -- Optional: print state for debugging
+    -- print("Aimbot enabled:", value)
 end)
 
-print("Aimbot ready. Use the UI toggle or its keybind.")
+-- Smoothness Slider
+local smoothnessSlider = AimGroup:AddSlider("Smoothness", {
+    Text = "Smoothness (higher = weaker lock)",
+    Default = 50,
+    Min = 0,
+    Max = 100,
+    Rounding = 0,
+})
+smoothnessSlider:OnChanged(function(value)
+    _G.AimbotSettings.Smoothness = value
+end)
+
+-- Aim Type Dropdown
+local aimTypeDropdown = AimGroup:AddDropdown("AimType", {
+    Text = "Aim Type",
+    Values = { "Mouse", "Camera" },
+    Default = 1,
+    Multi = false,
+})
+aimTypeDropdown:OnChanged(function(value)
+    _G.AimbotSettings.AimType = value
+end)
+
+-- Part Dropdown (Head / Torso)
+local partDropdown = AimGroup:AddDropdown("Part", {
+    Text = "Lock Part",
+    Values = { "Head", "Torso" },
+    Default = 1,
+    Multi = false,
+})
+partDropdown:OnChanged(function(value)
+    _G.AimbotSettings.Part = value
+end)
