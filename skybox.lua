@@ -1,0 +1,21 @@
+-- skybox.lua
+-- Usage: loadstring(game:HttpGet("raw_url_to_this_file"))()(imageUrl)
+
+return function(imageUrl)
+    local Lighting = game:GetService("Lighting")
+    local sky = Lighting:FindFirstChild("Sky") or Instance.new("Sky", Lighting)
+
+    -- Roblox Sky uses 6 faces; set all to the same image
+    local faces = {
+        "SkyboxBk", "SkyboxDn", "SkyboxFt",
+        "SkyboxLf", "SkyboxRt", "SkyboxUp"
+    }
+    for _, face in ipairs(faces) do
+        sky[face] = imageUrl
+    end
+
+    -- Enable the sky (if it was disabled)
+    sky.Enabled = true
+
+    return true
+end
